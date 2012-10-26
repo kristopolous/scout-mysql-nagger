@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+  <head>
+    <title>MySQL Nagger</title>
+    <link rel=stylesheet href="bootstrap/css/bootstrap.css">
+    <style>
+      body { padding-top:60px}
+
+      #query-output {
+        display: none;
+        font-family: monospace;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body onload=setup()>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="brand" href="#">MySQL Nagger</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li><button class="btn" onclick="add_query()">Add Query</button></li>
+              <li><button class="btn offset5 btn-primary" onclick="save_query()">Save</button></li>
+            </ul> 
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div class="row">
+        <div class="well" id="query-output">
+        </div>
+      </div>
+      <div class="row" id="query-container">
+        <span id="query-container-template">
+          <div class="span5" id="query_0">
+            <form class="form-horizontal">
+              <legend>Query Editor
+                <button style=float:right type="button" class="btn" onclick="remove_query(0)">Remove</button>
+              </legend>
+              <div class="control-group">
+                <label class="control-label" for="query_name_0">Query Name</label>
+                <div class="controls">
+                  <input type="text" id="query_name_0"></input>
+                </div>
+              </div>
+              <div class="control-group">
+                <label class="control-label" for="query_string_0">Query String</label>
+                <div class="controls">
+                  <textarea rows="3" id="query_string_0"></textarea>
+                </div>
+              </div>
+            </form>
+          </div>
+        </span>
+      </div>
+    </div>
+  </body>
+
+  <script language=template id=query-container-template>
+  </script>
+</html>
+<script>
+  var 
+    index = 0,
+    active = {0: true},
+    template;
+
+  (function() {
+    var run_once = 0;
+
+    window.setup = function(){
+      if(run_once) { return; }
+      template = $("query-container-template").innerHTML;
+      run_once = 1;
+    }
+  })();
+
+  function $(id) { 
+    return document.getElementById(id);
+  }
+    
+  function $create(type) { 
+    return document.createElement(type);
+  }
+
+  function save_query() {
+    var out = [];
+    for(var index in active) {
+      if($("query_string_" + index).value.length > 0) {
+        out.push({
+          name: $("query_name_" + index).value,
+          query: $("query_string_" + index).value
+        });
+      }
+    }
+    $("query-output").innerHTML = JSON.stringify(out);
+    $("query-output").style.display = "block";
+  }
+
+  function add_query() {
+    active[++index] = true;
+
+    var span = $("query-container").appendChild($create("span"));
+
+    span.innerHTML = template.replace(/0/g, index);
+  }
+
+  function remove_query(index) {
+    delete active[index];
+
+    $("query-container").removeChild($("query_" + index).parentNode);
+  }
+</script>

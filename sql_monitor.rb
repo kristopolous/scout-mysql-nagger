@@ -1,16 +1,31 @@
 $VERBOSE = false
-require 'mysql'
 
 class MysqlNagger < Scout::Plugin
   needs 'mysql'
 
   OPTIONS=<<-EOS
-  query:
-    name: SQL Query
-    notes: The SQL query to execute at the specified interval
+  query_name_1:
+    name: SQL Query Name 1
+    notes: The first SQL query to execute at the specified interval
+  query_name_2:
+    name: SQL Query Name 2
+    notes: The second SQL query name
+  query_code_3:
+    name: SQL Query Code 3
+    notes: The third SQL query to execute at the specified interval
+  query_code_1:
+    name: SQL Query Code 1
+    notes: The first SQL query to execute at the specified interval
+  query_name_3:
+    name: SQL Query Name 3
+    notes: The third SQL query name
+  query_code_2:
+    name: SQL Query Code 2
+    notes: The second SQL query to execute at the specified interval
   credential_file:
     name: Credential File
     notes: Provide a path to a newline separated file with a username on the first line and a password on the second line and optionally, a database name on the third.
+
   EOS
 
   def build_report
