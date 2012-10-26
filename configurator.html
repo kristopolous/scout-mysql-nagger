@@ -6,49 +6,54 @@
     <style>
       body { padding-top:60px}
 
-      #query-output {
-        display: none;
+      #output {
+        background: transparent;
+        width: 100%;
+        border: none;
         font-family: monospace;
+        box-shadow: none;
+        -webkit-box-shadow: none;
+        resize: none;
         white-space: pre;
       }
     </style>
   </head>
   <body onload=setup()>
-    <div class="navbar navbar-inverse navbar-fixed-top">
+    <div class="navbar navbar-inverse navbar-fixed-top" id=navbar>
       <div class="navbar-inner">
         <div class="container">
           <a class="brand" href="#">MySQL Nagger</a>
           <div class="nav-collapse collapse">
             <ul class="nav">
               <li><button class="btn" onclick="add_query()">Add Query</button></li>
-              <li><button class="btn offset5 btn-primary" onclick="save_query()">Save</button></li>
+              <li><button id="button_save" class="btn offset6 btn-link" onclick="save_query()">Save</button></li>
             </ul> 
           </div>
         </div>
       </div>
     </div>
     <div class="container">
+      <h3>Fancy Query</h3>
       <div class="row">
-        <div class="well" id="query-output">
-        </div>
+        <div class="well span10" id="output-container"><textarea disabled="disabled" id="output"></textarea></div>
       </div>
       <div class="row" id="query-container">
         <span id="query-container-template">
           <div class="span5" id="query_0">
             <form class="form-horizontal">
-              <legend>Query Editor
-                <button style=float:right type="button" class="btn" onclick="remove_query(0)">Remove</button>
+              <legend><span id="title_0">Query Editor</span>
+                <button alt="Remove this query" style=float:right type="button" class="close" onclick="remove_query(0)">&times;</button>
               </legend>
               <div class="control-group">
-                <label class="control-label" for="query_name_0">Query Name</label>
+                <label class="control-label" for="name_0">Query Name</label>
                 <div class="controls">
-                  <input type="text" id="query_name_0"></input>
+                  <input type="text" id="name_0"></input>
                 </div>
               </div>
               <div class="control-group">
-                <label class="control-label" for="query_string_0">Query String</label>
+                <label class="control-label" for="string_0">Query String</label>
                 <div class="controls">
-                  <textarea rows="3" id="query_string_0"></textarea>
+                  <textarea rows="3" id="string_0"></textarea>
                 </div>
               </div>
             </form>
@@ -65,17 +70,8 @@
   var 
     index = 0,
     active = {0: true},
+    run_once = 0,
     template;
-
-  (function() {
-    var run_once = 0;
-
-    window.setup = function(){
-      if(run_once) { return; }
-      template = $("query-container-template").innerHTML;
-      run_once = 1;
-    }
-  })();
 
   function $(id) { 
     return document.getElementById(id);
@@ -85,30 +81,102 @@
     return document.createElement(type);
   }
 
+  function set (k, v) {
+    if(!localStorage) { return; }
+
+    localStorage[k] = v;
+    return v;
+  }
+
+  function get (k) {
+    if(!localStorage) { return; }
+
+    return localStorage[k];
+  }
+
+  function setup(){
+    if(run_once) { return; }
+
+    template = $("query-container-template").innerHTML;
+    remove_query(0);
+    run_once = 1;
+
+    load_query(JSON.parse(get("queryList")));
+    $("output-container").onclick = function() {
+      $("output").select();
+    }
+    save_query();
+  }
+
+  function clear_dirty(){
+    $("button_save").className = $("button_save").className.replace('danger', 'link');
+    $("button_save").innerHTML = "Saved"
+
+    if($("navbar").className.search(/inverse/) == -1) {
+      $("navbar").className += " navbar-inverse";
+    }
+  }
+  
+  function set_dirty(){
+    if($("button_save").className.search("danger") > -1) { return }
+
+    $("button_save").className = $("button_save").className.replace('link', 'danger');
+    $("button_save").innerHTML = "* Update *"
+    $("navbar").className = $("navbar").className.replace(/ navbar-inverse/, '');
+  }
+
+  function load_query(list) {
+    var my_index = 0;
+
+    if(!list) { return }
+
+    for(var ix = 0; ix < list.length; ix++) {
+      my_index = add_query();
+
+      $("name_" + my_index).value = list[ix][0];
+      $("string_" + my_index).value = list[ix][1];
+    }
+  }
+
   function save_query() {
-    var out = [];
-    for(var index in active) {
-      if($("query_string_" + index).value.length > 0) {
-        out.push({
-          name: $("query_name_" + index).value,
-          query: $("query_string_" + index).value
-        });
+    var 
+      out = [], 
+      index;
+
+    for(index in active) {
+      if($("string_" + index).value) {
+        $("title_" + index).innerHTML = "Edit '" + $("name_" + index).value + "'";
+
+        out.push([ 
+          $("name_" + index).value,
+          $("string_" + index).value
+        ]);
       }
     }
-    $("query-output").innerHTML = JSON.stringify(out);
-    $("query-output").style.display = "block";
+
+    $("output").innerHTML = set("queryList", JSON.stringify(out));
+
+    clear_dirty();
   }
 
   function add_query() {
-    active[++index] = true;
-
     var span = $("query-container").appendChild($create("span"));
 
+    active[++index] = true;
     span.innerHTML = template.replace(/0/g, index);
+
+    $("name_" + index).oninput = $("string_" + index).oninput = set_dirty;
+    $("name_" + index).focus();
+
+    return index;
   }
 
   function remove_query(index) {
     delete active[index];
+
+    if($("string_" + index).value) {
+      set_dirty();
+    }
 
     $("query-container").removeChild($("query_" + index).parentNode);
   }

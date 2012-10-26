@@ -2,36 +2,30 @@ $VERBOSE = false
 
 class MysqlNagger < Scout::Plugin
   needs 'mysql'
+  needs "rubygems"
+  needs "json"
 
   OPTIONS=<<-EOS
-  query_name_1:
-    name: SQL Query Name 1
-    notes: The first SQL query to execute at the specified interval
-  query_name_2:
-    name: SQL Query Name 2
-    notes: The second SQL query name
-  query_code_3:
-    name: SQL Query Code 3
-    notes: The third SQL query to execute at the specified interval
-  query_code_1:
-    name: SQL Query Code 1
-    notes: The first SQL query to execute at the specified interval
-  query_name_3:
-    name: SQL Query Name 3
-    notes: The third SQL query name
-  query_code_2:
-    name: SQL Query Code 2
-    notes: The second SQL query to execute at the specified interval
+  fancy_query:
+    name: Fancy Query
+    notes: This is either a straight shot SQL query or a JSON encoded string created with the configurator (https://github.com/kristopolous/scout-mysql-nagger/blob/master/configurator.html)
   credential_file:
     name: Credential File
     notes: Provide a path to a newline separated file with a username on the first line and a password on the second line and optionally, a database name on the third.
-
   EOS
 
   def build_report
     begin
-      query = option("query").to_s.strip
-      if query.empty?
+      raw_query = option("fancy_query").to_s
+      queryList = []
+
+      begin
+        queryList = JSON.parse(raw_query)
+      rescue 
+        queryList = ["result", raw_query.strip]
+      end
+
+      if queryList.empty?
         return error("A query wasn't provided.", "Please enter a query to monitor in the plugin settings.")
       end
 
@@ -62,10 +56,12 @@ class MysqlNagger < Scout::Plugin
           conn = Mysql.new "localhost", credentialMap[:user], credentialMap[:password]
         end
 
-        # cross those fingers, close that eye, and jump
-        result = conn.query(query)
-        row = result.fetch_row
-        report(:status => row[0])
+        queryList.each { | queryRow |
+          name, query = queryRow
+          result = conn.query(query)
+          row = result.fetch_row
+          report(name => row[0])
+        }
       rescue Mysql::Error => e
         return error("Mysql Error.", "Mysql returned the error number #{e.errno} with the description #{e.error}")
       ensure
