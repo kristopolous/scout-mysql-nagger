@@ -1,25 +1,23 @@
 <!doctype html>
 <html>
   <head>
-    <title>MySQL Nagger</title>
-    <link rel=stylesheet href="bootstrap/css/bootstrap.css">
+    <title>MySQL Nagger Configurator</title>
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.css">
     <style>
-      body { padding-top:60px}
+      body { padding-top:60px }
 
       #output {
         background: transparent;
         width: 100%;
         border: none;
-        font-family: monospace;
         box-shadow: none;
         -webkit-box-shadow: none;
         resize: none;
-        white-space: pre;
       }
     </style>
   </head>
-  <body onload=setup()>
-    <div class="navbar navbar-inverse navbar-fixed-top" id=navbar>
+  <body onload="setup()">
+    <div class="navbar navbar-inverse navbar-fixed-top" id="navbar">
       <div class="navbar-inner">
         <div class="container">
           <a class="brand" href="#">MySQL Nagger</a>
@@ -33,12 +31,14 @@
       </div>
     </div>
     <div class="container">
-      <h3>Fancy Query</h3>
-      <div class="row">
-        <div class="well span10" id="output-container"><textarea disabled="disabled" id="output"></textarea></div>
+      <div id="output-container">
+        <h3>Fancy Query</h3>
+        <div class="row">
+          <div class="well span10"><textarea disabled="disabled" id="output"></textarea></div>
+        </div>
       </div>
-      <div class="row" id="query-container">
-        <span id="query-container-template">
+      <div class="row" id="container">
+        <span id="container-template">
           <div class="span5" id="query_0">
             <form class="form-horizontal">
               <legend><span id="title_0">Query Editor</span>
@@ -62,25 +62,17 @@
       </div>
     </div>
   </body>
-
-  <script language=template id=query-container-template>
-  </script>
 </html>
 <script>
   var 
-    index = 0,
-    active = {0: true},
-    run_once = 0,
-    template;
+    index_ = 0,
+    active_ = {},
+    template_;
 
   function $(id) { 
     return document.getElementById(id);
   }
     
-  function $create(type) { 
-    return document.createElement(type);
-  }
-
   function set (k, v) {
     if(!localStorage) { return; }
 
@@ -91,21 +83,20 @@
   function get (k) {
     if(!localStorage) { return; }
 
-    return localStorage[k];
+    return localStorage[k] || "";
   }
 
   function setup(){
-    if(run_once) { return; }
+    if(template_) { return; }
 
-    template = $("query-container-template").innerHTML;
+    template_ = $("container-template").innerHTML;
     remove_query(0);
-    run_once = 1;
 
-    load_query(JSON.parse(get("queryList")));
+    load_query(get("queryList"));
+
     $("output-container").onclick = function() {
       $("output").select();
     }
-    save_query();
   }
 
   function clear_dirty(){
@@ -115,27 +106,33 @@
     if($("navbar").className.search(/inverse/) == -1) {
       $("navbar").className += " navbar-inverse";
     }
+    $("output-container").style.opacity = 1;
   }
   
   function set_dirty(){
     if($("button_save").className.search("danger") > -1) { return }
 
     $("button_save").className = $("button_save").className.replace('link', 'danger');
-    $("button_save").innerHTML = "* Update *"
+    $("button_save").innerHTML = "* Update *";
     $("navbar").className = $("navbar").className.replace(/ navbar-inverse/, '');
+    $("output-container").style.opacity = 0.4;
   }
 
   function load_query(list) {
-    var my_index = 0;
+    var index = 0;
 
-    if(!list) { return }
+    if(!list) { return add_query(); }
+
+    list = JSON.parse(list);
 
     for(var ix = 0; ix < list.length; ix++) {
-      my_index = add_query();
+      index = add_query();
 
-      $("name_" + my_index).value = list[ix][0];
-      $("string_" + my_index).value = list[ix][1];
+      $("name_" + index).value = list[ix][0];
+      $("string_" + index).value = list[ix][1];
     }
+
+    save_query();
   }
 
   function save_query() {
@@ -143,7 +140,7 @@
       out = [], 
       index;
 
-    for(index in active) {
+    for(index in active_) {
       if($("string_" + index).value) {
         $("title_" + index).innerHTML = "Edit '" + $("name_" + index).value + "'";
 
@@ -160,24 +157,24 @@
   }
 
   function add_query() {
-    var span = $("query-container").appendChild($create("span"));
+    var span = $("container").appendChild(document.createElement("span"));
 
-    active[++index] = true;
-    span.innerHTML = template.replace(/0/g, index);
+    active_[++index_] = true;
+    span.innerHTML = template_.replace(/0/g, index_);
 
-    $("name_" + index).oninput = $("string_" + index).oninput = set_dirty;
-    $("name_" + index).focus();
+    $("name_" + index_).oninput = $("string_" + index_).oninput = set_dirty;
+    $("name_" + index_).focus();
 
-    return index;
+    return index_;
   }
 
   function remove_query(index) {
-    delete active[index];
+    delete active_[index];
 
     if($("string_" + index).value) {
       set_dirty();
     }
 
-    $("query-container").removeChild($("query_" + index).parentNode);
+    $("container").removeChild($("query_" + index).parentNode);
   }
 </script>
