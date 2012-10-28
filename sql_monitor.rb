@@ -9,9 +9,15 @@ class MysqlNagger < Scout::Plugin
   fancy_query:
     name: Fancy Query
     notes: This is either a straight shot SQL query or a JSON encoded string created with the configurator (https://github.com/kristopolous/scout-mysql-nagger/blob/master/configurator.html)
-  credential_file:
-    name: Credential File
-    notes: Provide a path to a newline separated file with a username on the first line and a password on the second line and optionally, a database name on the third.
+  credential_user:
+    name: MySQL User
+    notes: The MySQL User to log in as
+  credential_password:
+    name: MySQL Password
+    notes: The MySQL User's password
+  credential_db:
+    name: MySQL DB
+    notes: The MySQL DB to use (optional)
   EOS
 
   def build_report
@@ -30,24 +36,10 @@ class MysqlNagger < Scout::Plugin
       end
 
       credentialMap = {
-        :user => "",
-        :password => "",
-        :db => ""
+        :user => option("credential_user").to_s.strip,
+        :password => option("credential_password").to_s.strip,
+        :db => option("credential_db").to_s.strip
       }
-
-      begin
-        credential_file = open(option("credential_file").to_s.strip)
-        parts = credential_file.readlines
-        credentialMap[:user] = parts.shift.strip
-        credentialMap[:password] = parts.shift.strip
-        credentialMap[:db] = parts.shift.strip if parts.length > 0
-      rescue ENOENT => e
-        return error("The file wasn't found.", "Please enter a valid path for the credentials.")
-      rescue EACCESS => e
-        return error("Permission denied.", "Please make sure that the scout user can read the credential file.")
-      rescue
-        return error("Unknown error.", "Please check the path and try again.")
-      end
 
       begin
         if credentialMap[:db].length > 0
